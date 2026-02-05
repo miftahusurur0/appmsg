@@ -416,7 +416,7 @@
                         <table class="w-full text-sm text-left text-slate-600">
                             <thead class="text-xs text-slate-700 uppercase bg-slate-50 border-b border-slate-200">
                                 <tr>
-                                    <th class="px-6 py-4">ID Transaksi</th>
+                                    <th class="px-6 py-4">No</th>
                                     <th class="px-6 py-4">Tgl Transaksi</th>
                                     <th class="px-6 py-4">Barang (Tgl Masuk)</th>
                                     <th class="px-6 py-4">Pelanggan</th>
@@ -1082,7 +1082,9 @@
 
         function handlePrint() {
             const bayar = parseInt(document.getElementById('payment-input').value) || 0;
-            if (bayar < currentTotal) {
+
+            // Skip payment validation for reprints
+            if (!isReprint && bayar < currentTotal) {
                 showToast('Jumlah bayar kurang!', 'error');
                 return;
             }
@@ -1439,6 +1441,9 @@
         }
 
         // --- REPORTS (UPDATED) ---
+        let currentPage = 1;
+        const itemsPerPage = 10;
+
         function renderReports() {
             const filterDate = document.getElementById('report-date-filter').value;
             const filterStatus = document.getElementById('report-status-filter').value;
@@ -1490,14 +1495,26 @@
 
             if (filteredData.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-slate-400">Tidak ada data ditemukan.</td></tr>';
+                renderPagination(0);
                 return;
             }
 
-            filteredData.forEach(row => {
+            // Sort by transaction date (newest first) for consistent ordering
+            filteredData.sort((a, b) => new Date(b.txDate) - new Date(a.txDate));
+
+            // Calculate pagination
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageData = filteredData.slice(startIndex, endIndex);
+
+            // Render current page data
+            pageData.forEach((row, index) => {
+                const sequentialNumber = startIndex + index + 1;
                 const date = new Date(row.txDate).toLocaleDateString() + ' ' + new Date(row.txDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 tbody.innerHTML += `
                     <tr class="bg-white border-b hover:bg-slate-50">
-                        <td class="px-6 py-4 font-mono text-xs">#${row.txId.toString().slice(-6)}</td>
+                        <td class="px-6 py-4 font-mono text-xs">${sequentialNumber}</td>
                         <td class="px-6 py-4 text-xs">${date}</td>
                         <td class="px-6 py-4">
                             <div class="font-bold text-sm text-slate-800">${row.item.name}</div>
@@ -1513,6 +1530,69 @@
                     </tr>
                 `;
             });
+
+            renderPagination(filteredData.length);
+        }
+
+        function renderPagination(totalItems) {
+            const paginationContainer = document.getElementById('pagination-container');
+            if (!paginationContainer) {
+                // Create pagination container if it doesn't exist
+                const container = document.createElement('div');
+                container.id = 'pagination-container';
+                container.className = 'flex justify-center items-center gap-2 mt-4';
+                document.getElementById('report-table-body').parentElement.parentElement.appendChild(container);
+            }
+
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            const container = document.getElementById('pagination-container');
+
+            if (totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let paginationHtml = '';
+
+            // Previous button
+            if (currentPage > 1) {
+                paginationHtml += `<button onclick="changePage(${currentPage - 1})" class="px-3 py-1 text-sm bg-slate-100 text-slate-600 rounded hover:bg-slate-200"><i class="fas fa-chevron-left"></i></button>`;
+            }
+
+            // Page numbers
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+
+            if (startPage > 1) {
+                paginationHtml += `<button onclick="changePage(1)" class="px-3 py-1 text-sm bg-slate-100 text-slate-600 rounded hover:bg-slate-200">1</button>`;
+                if (startPage > 2) {
+                    paginationHtml += `<span class="px-2 text-slate-400">...</span>`;
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === currentPage;
+                paginationHtml += `<button onclick="changePage(${i})" class="px-3 py-1 text-sm rounded ${isActive ? 'bg-brand-main text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">${i}</button>`;
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    paginationHtml += `<span class="px-2 text-slate-400">...</span>`;
+                }
+                paginationHtml += `<button onclick="changePage(${totalPages})" class="px-3 py-1 text-sm bg-slate-100 text-slate-600 rounded hover:bg-slate-200">${totalPages}</button>`;
+            }
+
+            // Next button
+            if (currentPage < totalPages) {
+                paginationHtml += `<button onclick="changePage(${currentPage + 1})" class="px-3 py-1 text-sm bg-slate-100 text-slate-600 rounded hover:bg-slate-200"><i class="fas fa-chevron-right"></i></button>`;
+            }
+
+            container.innerHTML = paginationHtml;
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            renderReports();
         }
 
         function exportReports() {
