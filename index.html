@@ -8,6 +8,9 @@
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
     
+    <!-- Manifest API untuk dynamic logo update -->
+    <script src="/manifest-api.js"></script>
+    
     <!-- Theme Color -->
     <meta name="theme-color" content="#1f2937">
     <meta name="msapplication-TileColor" content="#1f2937">
@@ -461,6 +464,40 @@
                         <input type="text" id="prof-biz-phone" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-brand-main outline-none">
                     </div>
 
+                    <!-- Logo Aplikasi -->
+                    <div class="pt-4 border-t border-slate-100">
+                        <h4 class="text-sm font-bold text-slate-700 mb-3">🎨 Logo Aplikasi</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Upload Section -->
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-2">Upload Logo (PNG/JPG, Max 2MB)</label>
+                                <div class="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-brand-main hover:bg-blue-50 transition cursor-pointer" onclick="document.getElementById('logo-upload-input').click()">
+                                    <i class="fas fa-cloud-upload-alt text-2xl text-slate-400 mb-2"></i>
+                                    <p class="text-xs text-slate-600">Klik atau drag & drop logo di sini</p>
+                                    <p class="text-[10px] text-slate-400 mt-1">Rekomendasi: 512x512px (square)</p>
+                                </div>
+                                <input type="file" id="logo-upload-input" accept="image/png,image/jpeg,image/jpg" class="hidden" onchange="handleLogoUpload(event)">
+                            </div>
+
+                            <!-- Preview Section -->
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-2">Preview Logo</label>
+                                <div class="bg-slate-100 rounded-lg p-6 flex items-center justify-center min-h-[180px] border border-slate-200">
+                                    <div id="logo-preview-wrapper" class="text-center">
+                                        <div id="logo-preview" class="w-24 h-24 mx-auto mb-3 bg-slate-200 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-image text-slate-400 text-3xl"></i>
+                                        </div>
+                                        <p class="text-xs text-slate-500">Belum ada logo</p>
+                                        <button type="button" id="logo-clear-btn" onclick="clearLogo()" class="mt-2 text-xs text-red-600 hover:text-red-700 hidden">
+                                            <i class="fas fa-trash-alt"></i> Hapus Logo
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-2">💡 Logo ini akan menjadi ikon aplikasi setelah diinstall di home screen (Android/iOS)</p>
+                    </div>
+
                     <!-- Biaya Operasional -->
                     <div class="pt-4 border-t border-slate-100">
                         <h4 class="text-sm font-bold text-slate-700 mb-3">Biaya Operasional (untuk Laporan Keuntungan)</h4>
@@ -520,11 +557,11 @@
             <div class="space-y-3">
                 <input type="text" id="prod-name" placeholder="Nama Produk (cth: Gas Elpiji 5.5kg)" class="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-brand-main outline-none">
                 <div class="grid grid-cols-3 gap-2">
-                    <input type="number" id="prod-weight" step="0.1" placeholder="Berat" class="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-brand-main outline-none">
+                    <input type="number" id="prod-weight" step="0.1" placeholder="Berat" min="0" class="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-brand-main outline-none">
                     <input type="date" id="prod-date-in" class="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-brand-main outline-none">
-                    <input type="number" id="prod-stock" placeholder="Stok" class="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-brand-main outline-none">
+                    <input type="number" id="prod-stock" placeholder="Stok" min="0" class="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-brand-main outline-none">
                 </div>
-                <input type="number" id="prod-price" placeholder="Harga Jual" class="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-brand-main outline-none font-semibold text-brand-main">
+                <input type="number" id="prod-price" placeholder="Harga Jual" min="0" class="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-brand-main outline-none font-semibold text-brand-main">
             </div>
             <div class="flex justify-end gap-2 mt-6">
                 <button onclick="closeModal('modal-product')" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm">Batal</button>
@@ -557,7 +594,7 @@
             <p class="text-xs text-slate-500 mb-3">Masukkan jenis tabung dan jumlah stok kosong yang tersedia.</p>
             <div class="space-y-3">
                 <input type="text" id="tank-name" placeholder="Nama (cth: Bright Gas 5.5kg)" class="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-brand-main outline-none">
-                <input type="number" id="tank-stock" placeholder="Jumlah Stok" class="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-brand-main outline-none">
+                <input type="number" id="tank-stock" placeholder="Jumlah Stok" min="0" class="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-brand-main outline-none">
             </div>
             <div class="flex justify-end gap-2 mt-6">
                 <button onclick="closeModal('modal-tank')" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm">Batal</button>
@@ -591,7 +628,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1">Jumlah Bayar</label>
-                        <input type="number" id="payment-input" oninput="calculateChange()" placeholder="0" class="w-full px-3 py-2 border border-slate-300 rounded text-lg font-bold text-slate-800 focus:ring-2 focus:ring-brand-main outline-none">
+                        <input type="number" id="payment-input" oninput="calculateChange()" placeholder="0" min="0" class="w-full px-3 py-2 border border-slate-300 rounded text-lg font-bold text-slate-800 focus:ring-2 focus:ring-brand-main outline-none">
                     </div>
                 </div>
             </div>
@@ -671,12 +708,22 @@
         }
 
         function saveData() {
-            localStorage.setItem('amp_data', JSON.stringify(data)); // Always save to localStorage
+            // Always save to localStorage first (offline support)
+            localStorage.setItem('amp_data', JSON.stringify(data));
+            
+            // Sync to Firebase in background
             if (dbRef) {
-                set(dbRef, data).catch((error) => {
-                    console.error("Error saving data:", error);
-                    showToast('Gagal menyimpan data ke cloud', 'error');
-                });
+                set(dbRef, data)
+                    .then(() => {
+                        console.log('✅ Data berhasil tersimpan ke cloud (Firebase)');
+                        // Optional: Show success only on manual saves (not every operation)
+                    })
+                    .catch((error) => {
+                        console.error("❌ Error saving data to Firebase:", error);
+                        showToast('⚠️ Data tersimpan lokal saja. Cloud sync gagal.', 'error');
+                    });
+            } else {
+                console.log('ℹ️ Firebase tidak tersedia. Data tersimpan di lokal.');
             }
             updateDashboard();
         }
@@ -1085,21 +1132,34 @@
 
         function handleSaveOnly() {
             const bayar = parseInt(document.getElementById('payment-input').value) || 0;
+            
+            // Validasi pembayaran tidak boleh minus
+            if (bayar < 0) {
+                showToast('❌ Jumlah bayar tidak boleh minus (negatif)', 'error');
+                return;
+            }
+            
             if (bayar < currentTotal) {
-                showToast('Jumlah bayar kurang!', 'error');
+                showToast('❌ Jumlah bayar kurang!', 'error');
                 return;
             }
             processTransaction(bayar);
             closeModal('modal-invoice-preview');
-            showToast('Transaksi Berhasil Disimpan');
+            showToast('✅ Transaksi Berhasil Disimpan');
         }
 
         function handlePrint() {
             const bayar = parseInt(document.getElementById('payment-input').value) || 0;
 
+            // Validasi pembayaran tidak boleh minus
+            if (bayar < 0) {
+                showToast('❌ Jumlah bayar tidak boleh minus (negatif)', 'error');
+                return;
+            }
+
             // Skip payment validation for reprints
             if (!isReprint && bayar < currentTotal) {
-                showToast('Jumlah bayar kurang!', 'error');
+                showToast('❌ Jumlah bayar kurang!', 'error');
                 return;
             }
 
@@ -1112,7 +1172,7 @@
                     if (isReprint) {
                         setTimeout(() => {
                             closeModal('modal-invoice-preview');
-                            showToast('Invoice berhasil dicetak ulang');
+                            showToast('✅ Invoice berhasil dicetak ulang');
                         }, 500);
                     } else {
                         processTransaction(bayar);
@@ -1240,6 +1300,20 @@
             const price = parseInt(document.getElementById('prod-price').value);
 
             if(!name || !price || !dateIn || isNaN(weight)) return showToast('Data tidak lengkap', 'error');
+            
+            // Validasi tidak boleh minus
+            if (weight < 0) {
+                showToast('❌ Berat tidak boleh minus (negatif)', 'error');
+                return;
+            }
+            if (stock < 0) {
+                showToast('❌ Stok tidak boleh minus (negatif)', 'error');
+                return;
+            }
+            if (price < 0) {
+                showToast('❌ Harga jual tidak boleh minus (negatif)', 'error');
+                return;
+            }
 
             const code = generateProductCode(name, weight);
 
@@ -1261,7 +1335,7 @@
             closeModal('modal-product');
             renderProducts();
             initPOS();
-            showToast('Produk tersimpan');
+            showToast('✅ Produk tersimpan');
         }
 
         function editProduct(id) {
@@ -1446,11 +1520,17 @@
             const stock = parseInt(document.getElementById('tank-stock').value) || 0;
             
             if(name) {
+                // Validasi tidak boleh minus
+                if (stock < 0) {
+                    showToast('❌ Jumlah stok tidak boleh minus (negatif)', 'error');
+                    return;
+                }
+                
                 data.tanks.push({ id: Date.now(), name, stock });
                 saveData();
                 renderLoans();
                 closeModal('modal-tank');
-                showToast('Jenis tabung ditambahkan');
+                showToast('✅ Jenis tabung ditambahkan');
             }
         }
 
@@ -1757,6 +1837,132 @@
             document.getElementById('prof-transport-per-cylinder').value = data.profile.transportPerCylinder || '';
             document.getElementById('prof-weekly-driver').value = data.profile.weeklyDriver || '';
             document.getElementById('prof-monthly-seller').value = data.profile.monthlySeller || '';
+            
+            // Load logo preview if exists
+            if (data.profile.logoBase64) {
+                displayLogoPreview(data.profile.logoBase64);
+            }
+        }
+
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Validate file size (max 2MB)
+            const maxSize = 2 * 1024 * 1024; // 2MB
+            if (file.size > maxSize) {
+                showToast('❌ Logo terlalu besar. Maksimal 2MB', 'error');
+                return;
+            }
+
+            // Validate file type
+            if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+                showToast('❌ Format harus PNG atau JPG', 'error');
+                return;
+            }
+
+            // Read dan convert ke base64
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const base64String = e.target.result;
+                    data.profile.logoBase64 = base64String;
+                    displayLogoPreview(base64String);
+                    showToast('✅ Logo berhasil upload. Jangan lupa simpan!', 'success');
+                    
+                    // Auto-update manifest
+                    updateManifestWithLogo(base64String);
+                } catch (error) {
+                    console.error('Error reading file:', error);
+                    showToast('❌ Gagal membaca file logo', 'error');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function displayLogoPreview(base64String) {
+            const preview = document.getElementById('logo-preview');
+            const clearBtn = document.getElementById('logo-clear-btn');
+            
+            preview.innerHTML = `<img src="${base64String}" alt="Logo" class="w-full h-full object-cover rounded-lg">`;
+            clearBtn.classList.remove('hidden');
+        }
+
+        function clearLogo() {
+            if (confirm('Hapus logo aplikasi?')) {
+                data.profile.logoBase64 = null;
+                
+                const preview = document.getElementById('logo-preview');
+                const clearBtn = document.getElementById('logo-clear-btn');
+                
+                preview.innerHTML = '<i class="fas fa-image text-slate-400 text-3xl"></i>';
+                clearBtn.classList.add('hidden');
+                
+                document.getElementById('logo-upload-input').value = '';
+                showToast('Logo dihapus', 'info');
+                
+                // Reset manifest ke default
+                updateManifestWithLogo(null);
+            }
+        }
+
+        function updateManifestWithLogo(base64String) {
+            try {
+                let manifestData = {
+                    name: data.profile.name || "Sistem Penjualan Gas - AMP",
+                    short_name: "AMP POS",
+                    description: "Aplikasi Sistem Penjualan Gas terintegrasi dengan Database Real-time",
+                    start_url: "./",
+                    scope: "/",
+                    display: "standalone",
+                    orientation: "portrait-primary",
+                    theme_color: "#1f2937",
+                    background_color: "#ffffff",
+                    categories: ["business", "productivity"]
+                };
+
+                // Icons
+                if (base64String) {
+                    // Use uploaded logo
+                    manifestData.icons = [
+                        {
+                            src: base64String,
+                            sizes: "192x192",
+                            type: "image/png",
+                            purpose: "any"
+                        },
+                        {
+                            src: base64String,
+                            sizes: "512x512",
+                            type: "image/png",
+                            purpose: "any maskable"
+                        }
+                    ];
+                } else {
+                    // Use default SVG icons
+                    manifestData.icons = [
+                        {
+                            src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231f2937' width='192' height='192'/><text x='50%' y='50%' font-size='80' font-weight='bold' fill='%23ffffff' text-anchor='middle' dominant-baseline='central'>AMP</text></svg>",
+                            sizes: "192x192",
+                            type: "image/svg+xml",
+                            purpose: "any"
+                        },
+                        {
+                            src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%231f2937' width='512' height='512'/><text x='50%' y='50%' font-size='240' font-weight='bold' fill='%23ffffff' text-anchor='middle' dominant-baseline='central'>AMP</text></svg>",
+                            sizes: "512x512",
+                            type: "image/svg+xml",
+                            purpose: "any maskable"
+                        }
+                    ];
+                }
+
+                // Update manifest di localStorage untuk referensi
+                localStorage.setItem('amp_manifest', JSON.stringify(manifestData));
+                
+                console.log('✅ Manifest updated dengan logo baru');
+            } catch (error) {
+                console.error('Error updating manifest:', error);
+            }
         }
 
         function saveProfile() {
@@ -1766,8 +1972,12 @@
             data.profile.transportPerCylinder = document.getElementById('prof-transport-per-cylinder').value;
             data.profile.weeklyDriver = document.getElementById('prof-weekly-driver').value;
             data.profile.monthlySeller = document.getElementById('prof-monthly-seller').value;
+            
+            // Also update manifest with new name
+            updateManifestWithLogo(data.profile.logoBase64 || null);
+            
             saveData();
-            showToast('Profil disimpan');
+            showToast('✅ Profil disimpan. Logo akan digunakan saat app di-install ulang.', 'success');
             updateHeader();
         }
         
@@ -2059,6 +2269,10 @@
 
         // --- INIT & MIGRATION ---
         window.onload = function() {
+            // Initialize dynamic manifest with custom logo
+            if (window.manifestAPI) {
+                window.manifestAPI.initDynamicManifest();
+            }
             loadData(); // Load data from Firebase first
         };
 
@@ -2073,6 +2287,11 @@
                         scope: '/'
                     });
                     console.log('✅ Service Worker registered successfully:', registration);
+                    
+                    // Initialize or update dynamic manifest
+                    if (window.manifestAPI && registration.active) {
+                        window.manifestAPI.initDynamicManifest();
+                    }
                     
                     // Check for updates periodically
                     setInterval(async () => {
@@ -2091,6 +2310,10 @@
             // Handle SW update prompts
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 console.log('✅ Service Worker controller changed - app updated');
+                // Reload manifest when SW updates
+                if (window.manifestAPI) {
+                    window.manifestAPI.initDynamicManifest();
+                }
             });
         } else {
             console.warn('Service Worker not supported in this browser');
