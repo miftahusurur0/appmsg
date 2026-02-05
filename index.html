@@ -4,6 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sistem Penjualan Gas - AMP</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#1f2937">
+    <meta name="msapplication-TileColor" content="#1f2937">
+    
+    <!-- Apple iOS Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AMP POS">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%231f2937' width='180' height='180'/><text x='50%' y='50%' font-size='80' font-weight='bold' fill='%23ffffff' text-anchor='middle' dominant-baseline='central'>AMP</text></svg>">
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
@@ -2048,6 +2062,39 @@
             loadData(); // Load data from Firebase first
         };
 
+    </script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('/service-worker.js', {
+                        scope: '/'
+                    });
+                    console.log('✅ Service Worker registered successfully:', registration);
+                    
+                    // Check for updates periodically
+                    setInterval(async () => {
+                        try {
+                            await registration.update();
+                        } catch (error) {
+                            console.log('Update check failed:', error);
+                        }
+                    }, 60000); // Check every minute
+                    
+                } catch (error) {
+                    console.error('❌ Service Worker registration failed:', error);
+                }
+            });
+
+            // Handle SW update prompts
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                console.log('✅ Service Worker controller changed - app updated');
+            });
+        } else {
+            console.warn('Service Worker not supported in this browser');
+        }
     </script>
 </body>
 </html>
