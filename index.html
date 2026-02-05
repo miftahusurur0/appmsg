@@ -437,6 +437,7 @@
                                     <th class="px-6 py-4">Tgl Transaksi</th>
                                     <th class="px-6 py-4">Barang (Tgl Masuk)</th>
                                     <th class="px-6 py-4">Pelanggan</th>
+                                    <th class="px-6 py-4">Harga</th>
                                     <th class="px-6 py-4">Total</th>
                                     <th class="px-6 py-4 text-right">Aksi</th>
                                 </tr>
@@ -445,6 +446,70 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- PRODUCT ENTRY EXPENSES SECTION -->
+                <div class="mt-8 max-w-6xl mx-auto">
+                    <h2 class="text-2xl font-bold text-slate-800 mb-6">Pengeluaran Berdasarkan Tanggal Masuk Produk</h2>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Left: Date Selection -->
+                        <div class="lg:col-span-1">
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+                                <h3 class="font-bold text-slate-800">Pilih Tanggal Masuk Produk</h3>
+
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-600 mb-1">Tanggal Masuk</label>
+                                    <select id="product-entry-date-select" onchange="updateProductEntryEarnings()" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-brand-main outline-none">
+                                        <option value="">-- Pilih Tanggal --</option>
+                                    </select>
+                                </div>
+
+                                <div class="bg-orange-50 p-3 rounded border border-orange-200">
+                                    <div class="text-xs font-medium text-orange-800">Total Pendapatan</div>
+                                    <div class="text-2xl font-bold text-orange-600" id="product-entry-earnings-total">Rp 0</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right: Expenses List -->
+                        <div class="lg:col-span-2">
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="font-bold text-slate-800">Pengeluaran Lain-Lain (Bensin, dll)</h3>
+                                    <button onclick="openProductEntryExpenseModal()" class="text-xs bg-gas-primary text-white px-3 py-1 rounded hover:bg-gas-dark transition"><i class="fas fa-plus"></i> Tambah</button>
+                                </div>
+
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-sm">
+                                        <thead class="text-xs font-bold text-slate-600 bg-slate-50 border-b">
+                                            <tr>
+                                                <th class="px-3 py-2 text-left">Keterangan</th>
+                                                <th class="px-3 py-2 text-right">Jumlah</th>
+                                                <th class="px-3 py-2 text-center">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="product-entry-expenses-body" class="divide-y">
+                                            <tr><td colspan="3" class="px-3 py-4 text-center text-slate-400">Tidak ada pengeluaran</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="mt-4 p-3 bg-slate-50 rounded border border-slate-200">
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-slate-700 font-medium">Total Pengeluaran:</span>
+                                        <span class="font-bold text-red-600" id="product-entry-expenses-total">Rp 0</span>
+                                    </div>
+                                    <div class="border-t border-slate-300 pt-2 flex justify-between">
+                                        <span class="text-slate-700 font-bold">Pendapatan Bersih:</span>
+                                        <span class="text-2xl font-bold text-green-600" id="product-entry-net-earnings">Rp 0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- (Removed) Pendapatan dan Pengeluaran Mingguan - managed elsewhere -->
             </div>
 
              <!-- VIEW: PROFILE -->
@@ -603,6 +668,31 @@
         </div>
     </div>
 
+    <!-- (Removed) Modal for weekly expense - feature removed per request -->
+
+    <!-- MODAL: PRODUCT ENTRY EXPENSE -->
+    <div id="modal-product-entry-expense" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal('modal-product-entry-expense')"></div>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl w-full max-w-md p-6 modal-animate">
+            <h3 class="font-bold text-lg mb-4 text-slate-800">Tambah Pengeluaran Berdasarkan Tanggal Masuk</h3>
+            <input type="hidden" id="product-entry-expense-id">
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Keterangan Pengeluaran</label>
+                    <input type="text" id="product-entry-expense-desc" placeholder="Contoh: Bensin, Makan, dll" class="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-brand-main outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Jumlah (Rp)</label>
+                    <input type="number" id="product-entry-expense-amount" placeholder="0" min="0" class="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-brand-main outline-none">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button onclick="closeModal('modal-product-entry-expense')" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm">Batal</button>
+                <button onclick="saveProductEntryExpense()" class="px-4 py-2 bg-brand-main text-white rounded-lg text-sm hover:bg-blue-700">Simpan</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL: QR CODE POPUP -->
     <div id="modal-qr" class="fixed inset-0 z-[60] hidden flex items-center justify-center bg-slate-900/60 backdrop-blur-sm" onclick="closeModal('modal-qr')">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 modal-animate">
@@ -681,6 +771,7 @@
             loans: [],
             transactions: [],
             tanks: [],
+            productEntryExpenses: [],
             profile: { name: 'NAMA TOKO ANDA', address: 'Alamat Lengkap Toko', phone: '08xx-xxxx-xxxx' }
         };
 
@@ -726,6 +817,8 @@
                 console.log('ℹ️ Firebase tidak tersedia. Data tersimpan di lokal.');
             }
             updateDashboard();
+            // Refresh product-entry date select when data changes
+            try { populateProductEntryDates(); } catch(e) {}
         }
 
         // Load data from localStorage immediately, sync with Firebase in background if available
@@ -742,6 +835,8 @@
             updateDashboard();
             initPOS();
             updateHeader();
+            // Populate product-entry dates after loading data
+            try { populateProductEntryDates(); } catch(e) {}
 
             // Sync with Firebase in background
             if (dbRef) {
@@ -1612,9 +1707,14 @@
                         <td class="px-6 py-4 text-xs">${date}</td>
                         <td class="px-6 py-4">
                             <div class="font-bold text-sm text-slate-800">${row.item.name}</div>
-                            <div class="text-xs text-slate-500">x${row.item.qty} • Masuk: <span class="text-orange-600 font-bold">${formatDateIndo(row.item.dateIn)}</span></div>
+                            <div class="text-xs text-slate-500">Masuk: <span class="text-orange-600 font-bold">${formatDateIndo(row.item.dateIn)}</span></div>
                         </td>
                         <td class="px-6 py-4">${row.customer}</td>
+                        <td class="px-6 py-4">
+                            <div class="font-bold text-sm text-slate-800">${formatRupiah(row.item.price)}</div>
+                            <div class="text-xs text-slate-500">@x<span class="text-orange-600 font-bold">${row.item.qty}</span></div>
+                        </td>
+                        
                         <td class="px-6 py-4 font-bold text-brand-main">${formatRupiah(row.total)}</td>
                         <td class="px-6 py-4 text-right">
                             <button onclick="reprintInvoice(${row.txId})" class="text-blue-600 hover:text-blue-900 mr-2" title="Cetak Ulang Invoice"><i class="fas fa-print"></i></button>
@@ -2174,18 +2274,34 @@
 
             // Calculate costs
             const monthlyTransportCost = transportPerCylinder * monthlyCylindersSold;
-            const weeklyCosts = weeklyDriver; // Only driver cost for weekly
-            const monthlyCosts = monthlySeller + monthlyTransportCost; // Seller + transport based on cylinders sold
+            const weeklyCosts = weeklyDriver;
+            const monthlyCosts = monthlySeller + monthlyTransportCost;
 
-            // Calculate profits
-            const weeklyProfit = weeklyRevenue - weeklyCosts;
-            const monthlyProfit = monthlyRevenue - monthlyCosts;
+            // Calculate product-entry expenses that fall into the week/month (based on expense.date in YYYY-MM-DD)
+            const weekStartStr = currentWeekStart.toISOString().split('T')[0];
+            const weekEndStr = now.toISOString().split('T')[0];
+            const monthStartStr = currentMonthStart.toISOString().split('T')[0];
+            const monthEndStr = now.toISOString().split('T')[0];
+
+            const prodEntryExpenses = data.productEntryExpenses || [];
+            const weeklyProdEntryExpensesTotal = prodEntryExpenses.reduce((s, e) => {
+                const d = (e.date || '');
+                return s + ((d >= weekStartStr && d <= weekEndStr) ? (e.amount || 0) : 0);
+            }, 0);
+            const monthlyProdEntryExpensesTotal = prodEntryExpenses.reduce((s, e) => {
+                const d = (e.date || '');
+                return s + ((d >= monthStartStr && d <= monthEndStr) ? (e.amount || 0) : 0);
+            }, 0);
+
+            // Calculate profits (include product-entry expenses as deductions)
+            const weeklyProfit = weeklyRevenue - weeklyCosts - weeklyProdEntryExpensesTotal;
+            const monthlyProfit = monthlyRevenue - monthlyCosts - monthlyProdEntryExpensesTotal;
 
             // Create modal content
             const modalContent = `
                 <div class="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onclick="closeModal('profit-modal')">
                     <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-2xl p-4 sm:p-6 mx-2 sm:mx-4 modal-animate max-h-[90vh] overflow-y-auto">
-                        <h3 class="font-bold text-xl mb-6 text-slate-800 text-center">Laporan Keuntungan</h3>
+                        <h3 class="font-bold text-xl mb-6 text-slate-800 text-center">Laporan Keuntungan Penjualan</h3>
 
                         <div class="space-y-6">
                             <!-- Weekly Report -->
@@ -2250,6 +2366,10 @@
                                         <div class="font-bold text-slate-800">${formatRupiah(monthlySeller)}</div>
                                     </div>
                                 </div>
+                                <div class="mt-4 text-sm text-center">
+                                    <div class="text-slate-600">Pengeluaran Berdasarkan Tanggal Masuk Produk</div>
+                                    <div class="font-bold text-slate-800">Mingguan: ${formatRupiah(weeklyProdEntryExpensesTotal)} • Bulanan: ${formatRupiah(monthlyProdEntryExpensesTotal)}</div>
+                                </div>
                             </div>
                         </div>
 
@@ -2265,6 +2385,140 @@
             modal.id = 'profit-modal';
             modal.innerHTML = modalContent;
             document.body.appendChild(modal);
+        }
+
+        // --- PRODUCT ENTRY EXPENSES MANAGEMENT ---
+        function populateProductEntryDates() {
+            const sel = document.getElementById('product-entry-date-select');
+            sel.innerHTML = '<option value="">-- Pilih Tanggal --</option>';
+
+            // Collect unique dates from transaction items' dateIn and product master as fallback
+            const datesSet = new Set();
+            data.transactions.forEach(t => {
+                (t.items || []).forEach(it => {
+                    if (it && it.dateIn) datesSet.add((it.dateIn || '').split('T')[0]);
+                });
+            });
+            // fallback to products
+            data.products.forEach(p => {
+                if (p && p.dateIn) datesSet.add((p.dateIn || '').split('T')[0]);
+            });
+
+            const dates = Array.from(datesSet).sort().reverse();
+            dates.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.text = formatDateIndo(d);
+                sel.appendChild(opt);
+            });
+        }
+
+        function updateProductEntryEarnings() {
+            const date = document.getElementById('product-entry-date-select').value;
+            const totalEl = document.getElementById('product-entry-earnings-total');
+            const expensesTotalEl = document.getElementById('product-entry-expenses-total');
+            const netEl = document.getElementById('product-entry-net-earnings');
+
+            if (!date) {
+                totalEl.innerText = 'Rp 0';
+                expensesTotalEl.innerText = 'Rp 0';
+                netEl.innerText = 'Rp 0';
+                renderProductEntryExpenses();
+                return;
+            }
+
+            // Sum items sold whose dateIn matches selected date
+            let earnings = 0;
+            data.transactions.forEach(tx => {
+                (tx.items || []).forEach(it => {
+                    const itDate = (it.dateIn || '').split('T')[0];
+                    if (itDate === date) {
+                        earnings += (it.qty || 0) * (it.price || 0);
+                    } else {
+                        // fallback to product master
+                        const prod = data.products.find(p => p.id === it.id);
+                        if (prod) {
+                            const pDate = (prod.dateIn || '').split('T')[0];
+                            if (pDate === date) earnings += (it.qty || 0) * (it.price || 0);
+                        }
+                    }
+                });
+            });
+
+            // Sum expenses for that date (productEntryExpenses store `date` field)
+            const expenses = (data.productEntryExpenses || []).filter(e => (e.date || '') === date);
+            const expensesTotal = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+
+            totalEl.innerText = formatRupiah(earnings);
+            expensesTotalEl.innerText = formatRupiah(expensesTotal);
+            netEl.innerText = formatRupiah(earnings - expensesTotal);
+
+            renderProductEntryExpenses();
+        }
+
+        function openProductEntryExpenseModal() {
+            document.getElementById('product-entry-expense-id').value = '';
+            document.getElementById('product-entry-expense-desc').value = '';
+            document.getElementById('product-entry-expense-amount').value = '';
+            document.getElementById('modal-product-entry-expense').classList.remove('hidden');
+            setTimeout(() => document.getElementById('product-entry-expense-desc').focus(), 100);
+        }
+
+        function saveProductEntryExpense() {
+            const desc = document.getElementById('product-entry-expense-desc').value.trim();
+            const amount = parseInt(document.getElementById('product-entry-expense-amount').value) || 0;
+            const expId = document.getElementById('product-entry-expense-id').value;
+            const date = document.getElementById('product-entry-date-select').value;
+
+            if (!date) { showToast('Pilih tanggal masuk produk terlebih dahulu', 'error'); return; }
+            if (!desc || amount <= 0) { showToast('Keterangan dan jumlah harus diisi', 'error'); return; }
+
+            if (expId) {
+                const expense = (data.productEntryExpenses || []).find(e => e.id == expId);
+                if (expense) {
+                    expense.description = desc;
+                    expense.amount = amount;
+                }
+            } else {
+                data.productEntryExpenses = data.productEntryExpenses || [];
+                data.productEntryExpenses.push({ id: Date.now(), date: date, description: desc, amount: amount });
+            }
+
+            saveData();
+            closeModal('modal-product-entry-expense');
+            updateProductEntryEarnings();
+            showToast('Pengeluaran disimpan', 'success');
+        }
+
+        function deleteProductEntryExpense(id) {
+            if (!confirm('Hapus pengeluaran ini?')) return;
+            data.productEntryExpenses = (data.productEntryExpenses || []).filter(e => e.id != id);
+            saveData();
+            updateProductEntryEarnings();
+            showToast('Pengeluaran dihapus', 'success');
+        }
+
+        function renderProductEntryExpenses() {
+            const date = document.getElementById('product-entry-date-select').value;
+            const tbody = document.getElementById('product-entry-expenses-body');
+            if (!date) { tbody.innerHTML = '<tr><td colspan="3" class="px-3 py-4 text-center text-slate-400">Tidak ada pengeluaran</td></tr>'; return; }
+
+            const list = (data.productEntryExpenses || []).filter(e => (e.date || '') === date);
+            if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="3" class="px-3 py-4 text-center text-slate-400">Tidak ada pengeluaran</td></tr>'; return; }
+
+            let html = '';
+            list.forEach(exp => {
+                html += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-3 py-3 text-sm text-slate-700">${exp.description}</td>
+                        <td class="px-3 py-3 text-sm font-bold text-right text-red-600">${formatRupiah(exp.amount)}</td>
+                        <td class="px-3 py-3 text-center">
+                            <button onclick="deleteProductEntryExpense(${exp.id})" class="text-red-600 hover:text-red-900 text-sm"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
         }
 
         // --- INIT & MIGRATION ---
