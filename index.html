@@ -637,6 +637,7 @@
         let cart = [];
         let currentTotal = 0;
         let isDataLoaded = false;
+        let isReprint = false;
 
         // Firebase Database Reference (optional)
         let dbRef = null;
@@ -732,6 +733,15 @@
             // Senin, 20 Oktober 2023
             if(!dateString) return '-';
             return new Date(dateString).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
+        function generateQRDataURL(text) {
+            return new Promise((resolve, reject) => {
+                QRCode.toDataURL(text, { width: 100, height: 100 }, (err, url) => {
+                    if (err) reject(err);
+                    else resolve(url);
+                });
+            });
         }
 
         // --- NAVIGATION ---
@@ -841,27 +851,41 @@
             }
 
             const product = data.products.find(p => p.id === id);
-            if (qty > product.stock) {
-                showToast('Stok tidak mencukupi!', 'error');
+            if (!product) {
+                showToast('Produk tidak ditemukan', 'error');
                 return;
             }
 
-            const existing = cart.find(item => item.id === id);
-            if (existing) {
-                existing.qty += qty;
-                existing.price = price; 
-                existing.dateIn = product.dateIn;
+            // Check if product has sufficient stock
+            if (qty > product.stock) {
+                showToast(`Stok tidak mencukupi! Stok tersedia: ${product.stock}`, 'error');
+                return;
+            }
+
+            // Check if adding this quantity would exceed available stock (considering existing cart items)
+            const existingInCart = cart.find(item => item.id === id);
+            const totalQtyInCart = existingInCart ? existingInCart.qty + qty : qty;
+
+            if (totalQtyInCart > product.stock) {
+                showToast(`Jumlah total di keranjang (${totalQtyInCart}) melebihi stok tersedia (${product.stock})`, 'error');
+                return;
+            }
+
+            if (existingInCart) {
+                existingInCart.qty += qty;
+                existingInCart.price = price;
+                existingInCart.dateIn = product.dateIn;
             } else {
                 cart.push({
                     id: product.id,
                     name: product.name,
                     qty: qty,
                     price: price,
-                    dateIn: product.dateIn, 
+                    dateIn: product.dateIn,
                     total: qty * price
                 });
             }
-            
+
             renderCart();
             document.getElementById('pos-qty').value = 1;
         }
@@ -907,34 +931,34 @@
         }
 
         // --- CHECKOUT & PRINTING ---
-        function openCheckout() {
+        async function openCheckout() {
             if (cart.length === 0) {
                 showToast('Keranjang masih kosong', 'error');
                 return;
             }
 
             currentTotal = cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
-            
+
             document.getElementById('payment-total-display').innerText = formatRupiah(currentTotal);
             document.getElementById('payment-input').value = '';
             document.getElementById('payment-change-display').innerText = 'Rp 0';
             document.getElementById('payment-change-display').classList.remove('text-red-500');
             document.getElementById('payment-change-display').classList.add('text-green-600');
 
-            generateInvoiceHTML(currentTotal, 0);
+            await generateInvoiceHTML(currentTotal, 0);
 
             document.getElementById('modal-invoice-preview').classList.remove('hidden');
             setTimeout(() => document.getElementById('payment-input').focus(), 100);
-            
+
             updatePrintSize();
         }
 
-        function calculateChange() {
+        async function calculateChange() {
             const bayar = parseInt(document.getElementById('payment-input').value) || 0;
             const kembalian = bayar - currentTotal;
-            
+
             const displayEl = document.getElementById('payment-change-display');
-            
+
             if (kembalian < 0) {
                 displayEl.innerText = 'Kurang ' + formatRupiah(Math.abs(kembalian)).replace('Rp', '');
                 displayEl.classList.remove('text-green-600');
@@ -945,10 +969,10 @@
                 displayEl.classList.remove('text-red-500');
             }
 
-            generateInvoiceHTML(currentTotal, bayar);
+            await generateInvoiceHTML(currentTotal, bayar);
         }
 
-        function generateInvoiceHTML(total, bayar) {
+        async function generateInvoiceHTML(total, bayar) {
             const customerId = document.getElementById('pos-customer').value;
             let customerName = "Umum";
             if (customerId) {
@@ -962,11 +986,20 @@
             if (cart.length > 0) {
                 headerMasukDate = formatDateIndoLong(cart[0].dateIn);
             }
-            
+
             // Tgl Transaksi Full Format
             const fullDateStr = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
             const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
             const invId = 'INV' + now.getTime().toString().slice(-6);
+
+            // Generate QR code for invoice number
+            let qrCodeHtml = '';
+            try {
+                const qrUrl = await generateQRDataURL(invId);
+                qrCodeHtml = `<img src="${qrUrl}" alt="QR Code" style="width: 40px; height: 40px; position: absolute; top: 10px; right: 10px;">`;
+            } catch (error) {
+                console.error('Failed to generate QR code for invoice:', error);
+            }
 
             const kembalian = bayar - total;
 
@@ -974,7 +1007,7 @@
             cart.forEach(item => {
                 // Format Tanggal Masuk Produk
                 const entryDateStr = formatDateIndo(item.dateIn); // Sen, 20 Okt
-                
+
                 // Tampilan: Gas 5.5kg (Masuk: Sen, 20 Okt) x2
                 itemsHtml += `
                 <div style="display:flex; justify-content:space-between; margin-bottom: 4px; font-size: 10px;">
@@ -985,7 +1018,8 @@
 
             const invoiceHtml = `
                 <!-- HEADER: Nama, Alamat, Telp, Tgl Masuk -->
-                <div style="text-align:center; margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 8px;">
+                <div style="text-align:center; margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 8px; position: relative;">
+                    ${qrCodeHtml}
                     <div style="font-weight:bold; font-size:14px; text-transform:uppercase; margin-bottom:4px;">${data.profile.name}</div>
                     <div style="font-size:10px;">${data.profile.address}</div>
                     <div style="font-size:10px;">Telp: ${data.profile.phone}</div>
@@ -1053,21 +1087,53 @@
                 return;
             }
 
-            // CETAK DULU, KEMUDIAN SIMPAN
-            window.print();
-            processTransaction(bayar);
+            try {
+                // CETAK DULU, KEMUDIAN SIMPAN
+                if (window.print) {
+                    window.print();
 
-            // Opsional: Tutup modal otomatis setelah print selesai
-            // setTimeout(() => closeModal('modal-invoice-preview'), 1000);
+                    // For reprints, just close the modal without processing transaction
+                    if (isReprint) {
+                        setTimeout(() => {
+                            closeModal('modal-invoice-preview');
+                            showToast('Invoice berhasil dicetak ulang');
+                        }, 500);
+                    } else {
+                        processTransaction(bayar);
+                    }
+                } else {
+                    showToast('Browser tidak mendukung fungsi cetak', 'error');
+                }
+            } catch (error) {
+                console.error('Print error:', error);
+                showToast('Gagal mencetak invoice: ' + error.message, 'error');
+            }
         }
 
         function processTransaction(amountPaid) {
-            cart.forEach(cItem => {
-                const pIndex = data.products.findIndex(p => p.id === cItem.id);
-                if (pIndex > -1) {
-                    data.products[pIndex].stock -= cItem.qty;
+            // Only reduce stock if not a reprint
+            if (!isReprint) {
+                // Double-check stock availability before processing (extra safety)
+                for (const cItem of cart) {
+                    const product = data.products.find(p => p.id === cItem.id);
+                    if (!product || product.stock < cItem.qty) {
+                        showToast(`Stok produk ${cItem.name} tidak mencukupi!`, 'error');
+                        return; // Abort transaction
+                    }
                 }
-            });
+
+                // Reduce stock
+                cart.forEach(cItem => {
+                    const pIndex = data.products.findIndex(p => p.id === cItem.id);
+                    if (pIndex > -1) {
+                        data.products[pIndex].stock -= cItem.qty;
+                        // Ensure stock doesn't go negative (extra safety)
+                        if (data.products[pIndex].stock < 0) {
+                            data.products[pIndex].stock = 0;
+                        }
+                    }
+                });
+            }
 
             const total = cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
             const customerId = document.getElementById('pos-customer').value;
@@ -1085,20 +1151,26 @@
                 dateIn: i.dateIn
             }));
 
-            data.transactions.unshift({
-                id: Date.now(),
-                date: new Date().toISOString(),
-                customerName: customerName,
-                items: itemsToSave,
-                total: total,
-                paid: amountPaid,
-                change: amountPaid - total,
-                reported: false
-            });
+            // Only save transaction if not a reprint
+            if (!isReprint) {
+                data.transactions.unshift({
+                    id: Date.now(),
+                    date: new Date().toISOString(),
+                    customerName: customerName,
+                    items: itemsToSave,
+                    total: total,
+                    paid: amountPaid,
+                    change: amountPaid - total,
+                    reported: false
+                });
+            }
 
             saveData();
             clearCart();
             initPOS();
+
+            // Reset reprint flag
+            isReprint = false;
         }
 
         // --- PRODUCTS CRUD ---
@@ -1520,6 +1592,9 @@
                 return;
             }
 
+            // Set reprint flag
+            isReprint = true;
+
             // Set cart to transaction items for reprinting
             cart = transaction.items.map(item => ({
                 id: item.id,
@@ -1532,6 +1607,14 @@
 
             // Set customer
             document.getElementById('pos-customer').value = transaction.customerName === "Umum" ? "" : data.customers.find(c => c.name === transaction.customerName)?.id || "";
+
+            // Set current total for reprint
+            currentTotal = transaction.total;
+
+            // Set payment display
+            document.getElementById('payment-total-display').innerText = formatRupiah(currentTotal);
+            document.getElementById('payment-input').value = transaction.paid;
+            document.getElementById('payment-change-display').innerText = formatRupiah(transaction.change);
 
             // Generate invoice
             generateInvoiceHTML(transaction.total, transaction.paid);
@@ -1677,12 +1760,35 @@
         }
 
         // --- QR CODE POPUP ---
-        function showQrPopup(code) {
+        async function showQrPopup(code) {
             const container = document.getElementById('qr-popup-content');
-            container.innerHTML = '';
-            QRCode.toCanvas(container, code, { width: 200, height: 200 }, function (error) {
-                if (error) console.error(error);
-            });
+            container.innerHTML = '<div class="text-center text-slate-500">Generating QR Code...</div>';
+
+            try {
+                console.log('Generating QR for code:', code);
+
+                let qrUrl;
+                if (typeof QRCode !== 'undefined' && QRCode.toDataURL) {
+                    // Use local QRCode library if available
+                    qrUrl = await new Promise((resolve, reject) => {
+                        QRCode.toDataURL(code, { width: 100, height: 100 }, (err, url) => {
+                            if (err) reject(err);
+                            else resolve(url);
+                        });
+                    });
+                } else {
+                    // Fallback: Use online QR code service
+                    const size = 100;
+                    qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(code)}`;
+                }
+
+                console.log('QR URL generated:', qrUrl);
+                container.innerHTML = `<img src="${qrUrl}" alt="QR Code" class="mx-auto" style="width: 100px; height: 100px;">`;
+            } catch (error) {
+                console.error('QR Code generation failed:', error);
+                container.innerHTML = '<div class="text-center text-red-500">Failed to generate QR Code: ' + error.message + '</div>';
+            }
+
             document.getElementById('modal-qr').classList.remove('hidden');
         }
 
@@ -1773,8 +1879,8 @@
 
             // Create modal content
             const modalContent = `
-                <div class="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm" onclick="closeModal('profit-modal')">
-                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 mx-4 modal-animate">
+                <div class="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onclick="closeModal('profit-modal')">
+                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-2xl p-4 sm:p-6 mx-2 sm:mx-4 modal-animate max-h-[90vh] overflow-y-auto">
                         <h3 class="font-bold text-xl mb-6 text-slate-800 text-center">Laporan Keuntungan</h3>
 
                         <div class="space-y-6">
