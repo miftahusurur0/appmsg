@@ -817,6 +817,8 @@
                 console.log('ℹ️ Firebase tidak tersedia. Data tersimpan di lokal.');
             }
             updateDashboard();
+            // Refresh POS dropdown to filter products with stock > 0
+            try { initPOS(); } catch(e) {}
             // Refresh product-entry date select when data changes
             try { populateProductEntryDates(); } catch(e) {}
         }
@@ -966,7 +968,12 @@
         function initPOS() {
             const select = document.getElementById('pos-product-select');
             select.innerHTML = '<option value="">-- Cari atau Pilih Produk --</option>';
-            data.products.forEach(p => {
+            // Filter products with stock > 0 only and sort by name
+            const availableProducts = data.products
+                .filter(p => p.stock && p.stock > 0)
+                .sort((a, b) => a.name.localeCompare(b.name));
+            
+            availableProducts.forEach(p => {
                 select.innerHTML += `<option value="${p.id}">${p.name} (Stok: ${p.stock})</option>`;
             });
 
@@ -1826,13 +1833,35 @@
                 return;
             }
 
-            // Generate CSV content
-            let csvContent = 'ID Transaksi,Tanggal Transaksi,Nama Barang,Jumlah,Harga Satuan,Tanggal Masuk,Pelanggan,Total\n';
+            // Sort by product entry date first, then by transaction date
+            filteredData.sort((a, b) => {
+                const dateInCompare = (a.item.dateIn || '').localeCompare(b.item.dateIn || '');
+                if (dateInCompare !== 0) return dateInCompare;
+                return new Date(b.txDate) - new Date(a.txDate);
+            });
+
+            // Generate CSV content with formatted sections
+            let csvContent = 'LAPORAN PENJUALAN BARANG\nTanggal Export: ' + new Date().toLocaleDateString('id-ID');
+            csvContent += '\n\n';
+            csvContent += 'No,Tanggal Transaksi,Nama Barang,Jumlah,Harga Satuan,Tanggal Masuk Barang,Pelanggan,Total\n';
+
+            let rowNumber = 1;
+            let currentDateIn = '';
+            let subtotalAmount = 0;
 
             filteredData.forEach(row => {
                 const date = new Date(row.txDate).toLocaleDateString('id-ID') + ' ' + new Date(row.txDate).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+                const rowDateIn = (row.item.dateIn || '');
+                
+                // Add subtotal when dateIn changes
+                if (currentDateIn && currentDateIn !== rowDateIn && subtotalAmount > 0) {
+                    csvContent += `,,,,,"Subtotal (${formatDateIndo(currentDateIn)})",,(Rp ${subtotalAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')})\n`;
+                    subtotalAmount = 0;
+                }
+                
+                currentDateIn = rowDateIn;
                 const line = [
-                    `#${row.txId.toString().slice(-6)}`,
+                    rowNumber++,
                     `"${date}"`,
                     `"${row.item.name}"`,
                     row.item.qty,
@@ -1842,7 +1871,17 @@
                     row.total
                 ].join(',');
                 csvContent += line + '\n';
+                subtotalAmount += row.total;
             });
+            
+            // Add final subtotal
+            if (subtotalAmount > 0) {
+                csvContent += `,,,,,"Subtotal (${formatDateIndo(currentDateIn)})",,(Rp ${subtotalAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')})\n`;
+            }
+            
+            // Add grand total
+            const grandTotal = filteredData.reduce((sum, row) => sum + row.total, 0);
+            csvContent += `\n,,,,,,,"TOTAL KESELURUHAN",(Rp ${grandTotal.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')})\n`;
 
             // Create and download CSV file
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
