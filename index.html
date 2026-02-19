@@ -425,6 +425,10 @@
                     <div class="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
                         <span class="text-sm font-semibold text-slate-600" id="report-title-text">Semua Transaksi</span>
                         <div class="flex gap-2">
+                            <button id="report-invoice-btn" onclick="showReportSummaryByDate()" class="text-xs bg-white border border-slate-300 px-3 py-1 rounded text-slate-600 hover:bg-slate-100 disabled:opacity-50" title="Tampilkan ringkasan untuk tanggal masuk yang dipilih" disabled>
+                                <i class="fas fa-list"></i> Ringkasan by Tgl Masuk
+                            </button>
+                            <button onclick="markAllAsReportedByDate()" class="text-xs bg-orange-600 text-white border border-orange-600 px-3 py-1 rounded hover:bg-orange-700" title="Arsipkan semua transaksi berdasarkan tanggal masuk yang dipilih"><i class="fas fa-archive"></i> Arsipkan Semua by Tgl Masuk</button>
                             <button onclick="showProfitReport()" class="text-xs bg-green-600 text-white border border-green-600 px-3 py-1 rounded hover:bg-green-700"><i class="fas fa-chart-line"></i> Laporan Keuntungan</button>
                             <button onclick="exportReports()" class="text-xs bg-white border border-slate-300 px-3 py-1 rounded text-slate-600 hover:bg-slate-100"><i class="fas fa-download"></i> CSV</button>
                         </div>
@@ -1647,6 +1651,18 @@
             const titleText = document.getElementById('report-title-text');
             tbody.innerHTML = '';
 
+            // Enable/disable invoice button based on whether a date filter is selected
+            const invoiceBtn = document.getElementById('report-invoice-btn');
+            if (invoiceBtn) {
+                if (filterDate) {
+                    invoiceBtn.disabled = false;
+                    invoiceBtn.classList.remove('opacity-50');
+                } else {
+                    invoiceBtn.disabled = true;
+                    invoiceBtn.classList.add('opacity-50');
+                }
+            }
+
             let filteredData = [];
 
             // Filter transactions based on status
@@ -1968,6 +1984,42 @@
             }
         }
 
+        // --- BULK MARK AS REPORTED BY DATE ---
+        function markAllAsReportedByDate() {
+            const filterDate = document.getElementById('report-date-filter').value;
+            
+            if (!filterDate) {
+                showToast('Pilih tanggal masuk terlebih dahulu!', 'error');
+                return;
+            }
+
+            // Find all transactions that have items with the selected dateIn
+            const transactionsToMark = data.transactions.filter(t => {
+                // Check if any item in the transaction has the matching dateIn
+                const hasMatchingItem = t.items.some(item => item.dateIn === filterDate);
+                return hasMatchingItem && !t.reported;
+            });
+
+            if (transactionsToMark.length === 0) {
+                showToast('Tidak ada transaksi yang belum dilaporkan untuk tanggal ini!', 'info');
+                return;
+            }
+
+            const confirmMsg = `Arsipkan ${transactionsToMark.length} transaksi dengan tanggal masuk ${formatDateIndo(filterDate)}?`;
+            
+            if (confirm(confirmMsg)) {
+                let markedCount = 0;
+                transactionsToMark.forEach(t => {
+                    t.reported = true;
+                    markedCount++;
+                });
+                
+                saveData();
+                renderReports();
+                showToast(`✅ ${markedCount} transaksi berhasil diarsipkan!`);
+            }
+        }
+
         // --- PROFILE ---
         function renderProfile() {
             document.getElementById('prof-biz-name').value = data.profile.name;
@@ -2097,11 +2149,149 @@
 
                 // Update manifest di localStorage untuk referensi
                 localStorage.setItem('amp_manifest', JSON.stringify(manifestData));
-                
+
+                // Try to update the live manifest link and apple touch icon
+                try {
+                    if (window.manifestAPI && manifestAPI.initDynamicManifest) {
+                        manifestAPI.initDynamicManifest();
+                    }
+
+                    // Update apple-touch-icon link if present
+                    const appleLink = document.querySelector('link[rel="apple-touch-icon"]');
+                    const iconHref = base64String || "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%231f2937' width='180' height='180'/><text x='50%' y='50%' font-size='80' font-weight='bold' fill='%23ffffff' text-anchor='middle' dominant-baseline='central'>AMP</text></svg>";
+                    if (appleLink) appleLink.href = iconHref;
+
+                    // Update favicon (rel=icon) if exists or create one
+                    let iconLink = document.querySelector('link[rel="icon"]');
+                    if (!iconLink) {
+                        iconLink = document.createElement('link');
+                        iconLink.rel = 'icon';
+                        document.head.appendChild(iconLink);
+                    }
+                    iconLink.href = iconHref;
+                } catch (e) {
+                    console.warn('Could not update manifest link or icons live:', e);
+                }
+
                 console.log('✅ Manifest updated dengan logo baru');
             } catch (error) {
                 console.error('Error updating manifest:', error);
             }
+        }
+
+        // --- REPORT: Show non-printable summary popup for selected "Tanggal Masuk" ---
+        function showReportSummaryByDate() {
+            const filterDate = document.getElementById('report-date-filter').value;
+            if (!filterDate) {
+                showToast('Pilih tanggal masuk terlebih dahulu!', 'error');
+                return;
+            }
+
+            // Gather items matching the dateIn
+            const rows = [];
+            data.transactions.forEach(t => {
+                t.items.forEach(item => {
+                    if (item.dateIn === filterDate) {
+                        rows.push({ txId: t.id, txDate: t.date, name: item.name, qty: item.qty, price: item.price, dateIn: item.dateIn });
+                    }
+                });
+            });
+
+            if (rows.length === 0) {
+                showToast('Tidak ada transaksi untuk tanggal masuk yang dipilih', 'info');
+                return;
+            }
+
+            // Build summary HTML
+            let rowsHtml = '';
+            let totalPrice = 0;
+            let totalQty = 0;
+            rows.forEach((r, idx) => {
+                const txDateStr = new Date(r.txDate).toLocaleDateString('id-ID') + ' ' + new Date(r.txDate).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                const lineTotal = r.qty * r.price;
+                totalPrice += lineTotal;
+                totalQty += r.qty;
+                rowsHtml += `
+                    <div class="flex items-center justify-between text-sm py-2 border-b border-slate-100">
+                        <div class="w-44 text-xs text-slate-600">${txDateStr}</div>
+                        <div class="flex-1 px-3">${r.name}</div>
+                        <div class="w-12 text-right">${r.qty}</div>
+                        <div class="w-28 text-right">${formatRupiah(lineTotal)}</div>
+                        <div class="w-28 text-center text-xs text-slate-500">${formatDateIndo(r.dateIn)}</div>
+                    </div>
+                `;
+            });
+
+            const headerDate = formatDateIndoLong(filterDate);
+
+            // Calculate product-entry expenses for this tanggal masuk and subtract from total
+            const expensesList = (data.productEntryExpenses || []).filter(e => (e.date || '') === filterDate);
+            const expensesTotal = expensesList.reduce((s, e) => s + (e.amount || 0), 0);
+            const netTotal = totalPrice - expensesTotal;
+
+            // Build expenses HTML
+            let expensesHtml = '';
+            if (expensesList.length === 0) {
+                expensesHtml = `<div class="text-xs text-slate-400 p-3">Tidak ada pengeluaran untuk tanggal ini.</div>`;
+            } else {
+                expensesHtml = '<div class="space-y-2 p-2">';
+                expensesList.forEach(exp => {
+                    expensesHtml += `<div class="flex justify-between text-sm"><div class="text-slate-700">${exp.description}</div><div class="font-bold text-red-600">${formatRupiah(exp.amount)}</div></div>`;
+                });
+                expensesHtml += '</div>';
+            }
+
+            const modalHtml = `
+                <div class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/60">
+                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl p-4">
+                        <div class="flex justify-between items-center mb-3">
+                            <div>
+                                <div class="font-bold">Ringkasan Tanggal Masuk: ${headerDate}</div>
+                                <div class="text-xs text-slate-500">Menampilkan transaksi yang berkaitan dengan tanggal masuk terpilih</div>
+                            </div>
+                            <button onclick="document.getElementById('modal-report-summary')?.remove()" class="text-sm text-slate-600 hover:text-slate-900">Tutup</button>
+                        </div>
+                        <div id="modal-report-summary-body" class="max-h-72 overflow-y-auto border-t border-b border-slate-100">
+                            <div class="flex font-bold text-sm py-2 border-b">
+                                <div class="w-44 text-xs">Tgl Transaksi</div>
+                                <div class="flex-1 px-3">Nama Produk</div>
+                                <div class="w-12 text-right">Jml</div>
+                                <div class="w-28 text-right">Total</div>
+                                <div class="w-28 text-center text-xs">Tgl Masuk</div>
+                            </div>
+                            ${rowsHtml}
+                        </div>
+                        <div class="mt-3 border-t pt-3">
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="text-sm font-bold">Total Produk: ${totalQty}</div>
+                                <div class="text-sm font-bold">Total Harga (Kotor): ${formatRupiah(totalPrice)}</div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="text-xs text-slate-600 font-medium">Pengeluaran Tanggal Masuk</div>
+                                ${expensesHtml}
+                            </div>
+                            <div class="flex justify-between items-center pt-2 border-t">
+                                <div class="text-sm font-bold">Total Pengeluaran:</div>
+                                <div class="text-sm font-bold text-red-600">${formatRupiah(expensesTotal)}</div>
+                            </div>
+                            <div class="flex justify-between items-center mt-2">
+                                <div class="text-sm font-bold">Total Bersih:</div>
+                                <div class="text-sm font-bold text-green-600">${formatRupiah(netTotal)}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Remove existing modal if any
+            const existing = document.getElementById('modal-report-summary');
+            if (existing) existing.remove();
+
+            const wrapper = document.createElement('div');
+            wrapper.id = 'modal-report-summary';
+            wrapper.dataset.dynamic = 'true';
+            wrapper.innerHTML = modalHtml;
+            document.body.appendChild(wrapper);
         }
 
         function saveProfile() {
