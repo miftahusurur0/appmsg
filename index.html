@@ -1289,6 +1289,8 @@
                         setTimeout(() => {
                             closeModal('modal-invoice-preview');
                             showToast('✅ Invoice berhasil dicetak ulang');
+                            // Reset reprint flag so future operations behave normally
+                            isReprint = false;
                         }, 500);
                     } else {
                         processTransaction(bayar);
@@ -1931,37 +1933,68 @@
                 return;
             }
 
-            // Set reprint flag
-            isReprint = true;
+            // Async reprint flow: generate invoice, open modal, then trigger print
+            (async () => {
+                try {
+                    // Set reprint flag
+                    isReprint = true;
 
-            // Set cart to transaction items for reprinting
-            cart = transaction.items.map(item => ({
-                id: item.id,
-                name: item.name,
-                qty: item.qty,
-                price: item.price,
-                dateIn: item.dateIn,
-                total: item.qty * item.price
-            }));
+                    // Prepare cart from transaction items
+                    cart = transaction.items.map(item => ({
+                        id: item.id,
+                        name: item.name,
+                        qty: item.qty,
+                        price: item.price,
+                        dateIn: item.dateIn,
+                        total: item.qty * item.price
+                    }));
 
-            // Set customer
-            document.getElementById('pos-customer').value = transaction.customerName === "Umum" ? "" : data.customers.find(c => c.name === transaction.customerName)?.id || "";
+                    // Set customer selection in POS (non-essential)
+                    document.getElementById('pos-customer').value = transaction.customerName === "Umum" ? "" : data.customers.find(c => c.name === transaction.customerName)?.id || "";
 
-            // Set current total for reprint
-            currentTotal = transaction.total;
+                    // Set current total and payment displays
+                    currentTotal = transaction.total;
+                    document.getElementById('payment-total-display').innerText = formatRupiah(currentTotal);
+                    document.getElementById('payment-input').value = transaction.paid || 0;
+                    document.getElementById('payment-change-display').innerText = formatRupiah(transaction.change || 0);
 
-            // Set payment display
-            document.getElementById('payment-total-display').innerText = formatRupiah(currentTotal);
-            document.getElementById('payment-input').value = transaction.paid;
-            document.getElementById('payment-change-display').innerText = formatRupiah(transaction.change);
+                    // Wait for invoice HTML to be generated (includes QR code)
+                    await generateInvoiceHTML(transaction.total, transaction.paid || 0);
 
-            // Generate invoice
-            generateInvoiceHTML(transaction.total, transaction.paid);
+                    // Open modal (preview)
+                    document.getElementById('modal-invoice-preview').classList.remove('hidden');
 
-            // Open modal
-            document.getElementById('modal-invoice-preview').classList.remove('hidden');
-
-            showToast('Invoice siap dicetak ulang');
+                    // Ask user whether to auto-print now or just preview
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            title: 'Cetak otomatis?',
+                            text: 'Apakah Anda ingin langsung mencetak invoice atau hanya melihat preview?',
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonText: 'Ya, Cetak',
+                            cancelButtonText: 'Hanya Preview'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                try {
+                                    handlePrint();
+                                } catch (e) {
+                                    console.error('Auto-print failed:', e);
+                                    showToast('Gagal mencetak otomatis: ' + e.message, 'error');
+                                }
+                            } else {
+                                showToast('Preview terbuka. Tekan tombol Cetak jika ingin mencetak.');
+                            }
+                        });
+                    } else {
+                        // Fallback: if Swal not available, just show preview
+                        showToast('Preview terbuka. Tekan tombol Cetak jika ingin mencetak.');
+                    }
+                } catch (err) {
+                    console.error('Reprint error:', err);
+                    showToast('Gagal menyiapkan invoice untuk cetak', 'error');
+                    isReprint = false;
+                }
+            })();
         }
 
         function markAsReported(txId) {
