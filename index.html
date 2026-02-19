@@ -424,13 +424,23 @@
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                     <div class="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
                         <span class="text-sm font-semibold text-slate-600" id="report-title-text">Semua Transaksi</span>
-                        <div class="flex gap-2">
-                            <button id="report-invoice-btn" onclick="showReportSummaryByDate()" class="text-xs bg-white border border-slate-300 px-3 py-1 rounded text-slate-600 hover:bg-slate-100 disabled:opacity-50" title="Tampilkan ringkasan untuk tanggal masuk yang dipilih" disabled>
-                                <i class="fas fa-list"></i> Ringkasan by Tgl Masuk
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <button id="report-invoice-btn" onclick="showReportSummaryByDate()" class="flex items-center gap-2 text-xs bg-white border border-slate-300 px-2 py-1 sm:px-3 sm:py-1 rounded text-slate-600 hover:bg-slate-100 disabled:opacity-50" title="Tampilkan ringkasan untuk tanggal masuk yang dipilih" disabled>
+                                <i class="fas fa-list"></i>
+                                <span class="hidden sm:inline">Ringkasan by Tgl Masuk</span>
                             </button>
-                            <button onclick="markAllAsReportedByDate()" class="text-xs bg-orange-600 text-white border border-orange-600 px-3 py-1 rounded hover:bg-orange-700" title="Arsipkan semua transaksi berdasarkan tanggal masuk yang dipilih"><i class="fas fa-archive"></i> Arsipkan Semua by Tgl Masuk</button>
-                            <button onclick="showProfitReport()" class="text-xs bg-green-600 text-white border border-green-600 px-3 py-1 rounded hover:bg-green-700"><i class="fas fa-chart-line"></i> Laporan Keuntungan</button>
-                            <button onclick="exportReports()" class="text-xs bg-white border border-slate-300 px-3 py-1 rounded text-slate-600 hover:bg-slate-100"><i class="fas fa-download"></i> CSV</button>
+                            <button onclick="markAllAsReportedByDate()" class="flex items-center gap-2 text-xs bg-orange-600 text-white border border-orange-600 px-2 py-1 sm:px-3 sm:py-1 rounded hover:bg-orange-700" title="Arsipkan semua transaksi berdasarkan tanggal masuk yang dipilih">
+                                <i class="fas fa-archive"></i>
+                                <span class="hidden sm:inline">Arsipkan Semua by Tgl Masuk</span>
+                            </button>
+                            <button onclick="showProfitReport()" class="flex items-center gap-2 text-xs bg-green-600 text-white border border-green-600 px-2 py-1 sm:px-3 sm:py-1 rounded hover:bg-green-700">
+                                <i class="fas fa-chart-line"></i>
+                                <span class="hidden sm:inline">Laporan Keuntungan</span>
+                            </button>
+                            <button onclick="exportReports()" class="flex items-center gap-2 text-xs bg-white border border-slate-300 px-2 py-1 sm:px-3 sm:py-1 rounded text-slate-600 hover:bg-slate-100">
+                                <i class="fas fa-download"></i>
+                                <span class="hidden sm:inline">CSV</span>
+                            </button>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
